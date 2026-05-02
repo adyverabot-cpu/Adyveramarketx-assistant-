@@ -55,3 +55,23 @@ require('./commands/topup')(sock, jid, 'data', config.ownerNumber)
 
 else if(cmd === 'voucher')
 require('./commands/topup')(sock, jid, 'voucher', config.ownerNumber)
+else if(cmd === 'jualakun')
+require('./commands/akun')(sock, jid, 'jual', config.ownerNumber)
+
+else if(cmd === 'beliakun')
+require('./commands/akun')(sock, jid, 'beli', config.ownerNumber)
+
+else if(cmd === 'bt')
+require('./commands/akun')(sock, jid, 'bt', config.ownerNumber)
+
+else if(cmd === 'tt')
+require('./commands/akun')(sock, jid, 'bt', config.ownerNumber)
+
+else if(cmd === 'stok')
+require('./commands/akun')(sock, jid, 'stok', config.ownerNumber)
+
+else if(cmd === 'rekber')
+require('./commands/akun')(sock, jid, 'rekber', config.ownerNumber)
+
+else if(cmd === 'mc')
+require('./commands/akun')(sock, jid, 'mc', config.ownerNumber)
