@@ -35,3 +35,23 @@ async function startBot(){
  });
 }
 startBot();
+else if(cmd === 'topupml')
+require('./commands/topup')(sock, jid, 'ml', config.ownerNumber)
+
+else if(cmd === 'topupff')
+require('./commands/topup')(sock, jid, 'ff', config.ownerNumber)
+
+else if(cmd === 'topuppubg')
+require('./commands/topup')(sock, jid, 'pubg', config.ownerNumber)
+
+else if(cmd === 'topupvalorant')
+require('./commands/topup')(sock, jid, 'valorant', config.ownerNumber)
+
+else if(cmd === 'pulsa')
+require('./commands/topup')(sock, jid, 'pulsa', config.ownerNumber)
+
+else if(cmd === 'data')
+require('./commands/topup')(sock, jid, 'data', config.ownerNumber)
+
+else if(cmd === 'voucher')
+require('./commands/topup')(sock, jid, 'voucher', config.ownerNumber)
