@@ -75,3 +75,11 @@ require('./commands/akun')(sock, jid, 'rekber', config.ownerNumber)
 
 else if(cmd === 'mc')
 require('./commands/akun')(sock, jid, 'mc', config.ownerNumber)
+else if(cmd === 'postakun')
+require('./commands/stok')(sock, jid, 'post', args.join(' '))
+
+else if(cmd === 'sold')
+require('./commands/stok')(sock, jid, 'sold', args.join(' '))
+
+else if(cmd === 'stok')
+require('./commands/stok')(sock, jid, 'list', '')
