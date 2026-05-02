@@ -31,10 +31,12 @@ sock.ev.on('connection.update', async ({ connection, qr }) => {
 if(qr) qrcode.generate(qr,{small:true})
 
 if(connection === 'open'){
+
 console.log(config.botName + ' aktif')
 
 let all = await sock.groupFetchAllParticipating()
 groups = Object.keys(all)
+
 }
 
 if(connection === 'close'){
@@ -43,16 +45,49 @@ startBot()
 
 })
 
+sock.ev.on('group-participants.update', async (anu) => {
+
+try{
+
+let db = readJSON('./database/groups.json', {})
+let set = db[anu.id] || {}
+
+for(let user of anu.participants){
+
+if(anu.action === 'add' && set.welcome){
+
+await sock.sendMessage(anu.id,{
+text:`👋 Selamat datang @${user.split('@')[0]} di ${config.tvName}`,
+mentions:[user]
+})
+
+}
+
+if(anu.action === 'remove' && set.goodbye){
+
+await sock.sendMessage(anu.id,{
+text:`👋 Selamat tinggal @${user.split('@')[0]}`,
+mentions:[user]
+})
+
+}
+
+}
+
+}catch(e){}
+
+})
+
 sock.ev.on('messages.upsert', async ({ messages }) => {
 
-try {
+try{
 
 const m = messages[0]
 if(!m.message) return
 
 const jid = m.key.remoteJid
 const sender = m.key.participant || jid
-const pushname = m.pushName || "User"
+const pushname = m.pushName || 'User'
 
 const text =
 m.message.conversation ||
@@ -62,6 +97,7 @@ m.message.extendedTextMessage?.text ||
 let users = readJSON('./database/users.json', {})
 let vipdb = readJSON('./database/vip.json', {})
 let groupdb = readJSON('./database/groups.json', {})
+let admindb = readJSON('./database/admin.json', [])
 
 if(!users[sender]){
 users[sender] = {
@@ -77,34 +113,33 @@ users[sender].chat += 1
 writeJSON('./database/users.json', users)
 
 const isGroup = jid.endsWith('@g.us')
-const isOwner =
-sender.includes(config.ownerNumber)
-
-const isVIP = vipdb[sender]?.type === 'VIP'
-const isVVIP = vipdb[sender]?.type === 'VVIP'
+const isOwner = sender.includes(config.ownerNumber)
+const isAdminBot = admindb.includes(sender)
+const isMaster = isOwner || isAdminBot
 
 if(isGroup){
 
 if(!groupdb[jid]){
-groupdb[jid] = { antilink:false }
+groupdb[jid] = {
+antilink:false,
+welcome:false,
+goodbye:false
+}
 writeJSON('./database/groups.json', groupdb)
 }
 
-if(groupdb[jid].antilink){
+let set = groupdb[jid]
 
-if(text.includes('chat.whatsapp.com')){
+if(set.antilink && text.includes('chat.whatsapp.com')){
 
-await sock.sendMessage(jid,{
-delete:m.key
-})
+await sock.sendMessage(jid,{ delete:m.key })
 
 await sock.sendMessage(jid,{
 text:`🚫 Link grup terdeteksi @${sender.split('@')[0]}`,
 mentions:[sender]
 })
 
-}
-
+return
 }
 
 }
@@ -112,7 +147,7 @@ mentions:[sender]
 if(!text.startsWith(config.prefix)) return
 
 let body = text.slice(1).trim()
-let args = body.split(" ")
+let args = body.split(' ')
 let cmd = args.shift().toLowerCase()
 
 if(cmd === 'menu')
@@ -123,28 +158,6 @@ require('./commands/owner')(sock,jid,config)
 
 else if(cmd === 'profile')
 require('./commands/profile')(sock,jid,sender,pushname)
-
-else if(cmd === 'top50'){
-let rank = Object.entries(users)
-.sort((a,b)=>b[1].koin-a[1].koin)
-.slice(0,50)
-.map((v,i)=>`${i+1}. ${v[0].split('@')[0]} - ${v[1].koin}`)
-.join('\n')
-
-sock.sendMessage(jid,{text:'🏆 TOP 50 USER\n\n'+rank})
-}
-
-else if(cmd === 'vip'){
-vipdb[sender] = { type:'VIP' }
-writeJSON('./database/vip.json', vipdb)
-sock.sendMessage(jid,{text:'💎 VIP aktif'})
-}
-
-else if(cmd === 'vvip'){
-vipdb[sender] = { type:'VVIP' }
-writeJSON('./database/vip.json', vipdb)
-sock.sendMessage(jid,{text:'👑 VVIP aktif'})
-}
 
 else if(cmd === 'topupml')
 require('./commands/topup')(sock,jid,'ml',config.ownerNumber)
@@ -189,22 +202,23 @@ else if(cmd === 'stok')
 require('./commands/stok')(sock,jid,'list','')
 
 else if(cmd === 'postakun'){
-if(!isOwner) return sock.sendMessage(jid,{text:'Owner only'})
+if(!isMaster) return sock.sendMessage(jid,{text:'Admin only'})
 require('./commands/stok')(sock,jid,'post',args.join(' '))
 }
 
 else if(cmd === 'sold'){
-if(!isOwner) return sock.sendMessage(jid,{text:'Owner only'})
+if(!isMaster) return sock.sendMessage(jid,{text:'Admin only'})
 require('./commands/stok')(sock,jid,'sold',args.join(' '))
 }
 
 else if(cmd === 'bc'){
-if(!isOwner) return sock.sendMessage(jid,{text:'Owner only'})
+if(!isMaster) return sock.sendMessage(jid,{text:'Admin only'})
 require('./commands/done')(sock,jid,'bc',args.join(' '),groups)
 }
 
 else if(cmd === 'done'){
-if(!isOwner) return sock.sendMessage(jid,{text:'Owner only'})
+if(!isMaster) return sock.sendMessage(jid,{text:'Admin only'})
+
 let tipe = args.shift()
 
 if(tipe === 'akun')
@@ -214,9 +228,77 @@ if(tipe === 'topup')
 require('./commands/done')(sock,jid,'topup',args.join(' '),groups)
 }
 
-else if(cmd === 'antilink'){
+else if(cmd === 'breakingnews'){
+
+if(!isMaster) return sock.sendMessage(jid,{
+text:'❌ Hanya admin / owner'
+})
+
 if(!isGroup) return
-if(!isOwner) return
+
+let isi = args.join(' ')
+if(!isi) return sock.sendMessage(jid,{
+text:'Contoh:\n.breakingnews Promo malam ini'
+})
+
+let meta = await sock.groupMetadata(jid)
+let members = meta.participants.map(v=>v.id)
+
+let waktu = new Date().toLocaleString('id-ID')
+
+let teks = `
+╔══════════════════════╗
+🚨 BREAKING NEWS ADYVERA TV 🚨
+╚══════════════════════╝
+
+📰 Berita:
+${isi}
+
+🕒 Waktu : ${waktu}
+📡 Sumber : ${config.botName}
+
+🔥 Tetap pantau ADYVERA TV
+`
+
+await sock.sendMessage(jid,{
+text:teks,
+mentions:members
+})
+
+}
+
+else if(cmd === 'hidetag'){
+
+if(!isOwner) return sock.sendMessage(jid,{
+text:'❌ Hanya owner utama'
+})
+
+if(!isGroup) return
+
+let isi = args.join(' ')
+if(!isi) return sock.sendMessage(jid,{
+text:'Contoh:\n.hidetag Tes semua'
+})
+
+let meta = await sock.groupMetadata(jid)
+let members = meta.participants.map(v=>v.id)
+
+await sock.sendMessage(jid,{
+text:`
+╔════════════╗
+📢 HIDDEN TAG
+╚════════════╝
+
+${isi}
+`,
+mentions:members
+})
+
+}
+
+else if(cmd === 'antilink'){
+
+if(!isMaster) return
 
 if(args[0] === 'on'){
 groupdb[jid].antilink = true
@@ -232,7 +314,86 @@ sock.sendMessage(jid,{text:'❌ Antilink mati'})
 
 }
 
-} catch(e){
+else if(cmd === 'welcome'){
+
+if(!isMaster) return
+
+if(args[0] === 'on'){
+groupdb[jid].welcome = true
+writeJSON('./database/groups.json', groupdb)
+sock.sendMessage(jid,{text:'✅ Welcome aktif'})
+}
+
+if(args[0] === 'off'){
+groupdb[jid].welcome = false
+writeJSON('./database/groups.json', groupdb)
+sock.sendMessage(jid,{text:'❌ Welcome mati'})
+}
+
+}
+
+else if(cmd === 'goodbye'){
+
+if(!isMaster) return
+
+if(args[0] === 'on'){
+groupdb[jid].goodbye = true
+writeJSON('./database/groups.json', groupdb)
+sock.sendMessage(jid,{text:'✅ Goodbye aktif'})
+}
+
+if(args[0] === 'off'){
+groupdb[jid].goodbye = false
+writeJSON('./database/groups.json', groupdb)
+sock.sendMessage(jid,{text:'❌ Goodbye mati'})
+}
+
+}
+
+else if(cmd === 'addadmin'){
+
+if(!isOwner) return
+
+let num = args[0]
+if(!num) return
+
+let id = num + '@s.whatsapp.net'
+
+if(!admindb.includes(id)){
+admindb.push(id)
+writeJSON('./database/admin.json', admindb)
+}
+
+sock.sendMessage(jid,{text:'✅ Admin ditambahkan'})
+
+}
+
+else if(cmd === 'deladmin'){
+
+if(!isOwner) return
+
+let num = args[0]
+if(!num) return
+
+let id = num + '@s.whatsapp.net'
+
+admindb = admindb.filter(v=>v!==id)
+writeJSON('./database/admin.json', admindb)
+
+sock.sendMessage(jid,{text:'✅ Admin dihapus'})
+
+}
+
+else if(cmd === 'listadmin'){
+
+let teks = admindb.map((v,i)=>`${i+1}. ${v.split('@')[0]}`).join('\n')
+if(!teks) teks = 'Belum ada admin'
+
+sock.sendMessage(jid,{text:teks})
+
+}
+
+}catch(e){
 console.log(e)
 }
 
