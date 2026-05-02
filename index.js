@@ -439,7 +439,19 @@ let teks = list.map((v,i)=>`${i+1}. ${v.split('@')[0]}`).join('\n')
 sock.sendMessage(jid,{text:teks})
 
 }
+  else if(cmd === 'leaderboard')
+require('./commands/leaderboard')(sock,jid)
 
+else if(cmd === 'topchat')
+require('./commands/topchat')(sock,jid)
+
+else if(cmd === 'topkoin')
+require('./commands/topkoin')(sock,jid)
+
+else if(cmd === 'toptrx'){
+   require('./commands/toptrx')(sock,jid)
+  }
+        
 else{
 sock.sendMessage(jid,{text:'❌ Command tidak ditemukan, ketik .menu'})
 }
