@@ -1,37 +1,21 @@
-const fs = require('fs')
-
-module.exports = async (sock, jid, config, pushname) => {
-try {
-
-const path = './database/users.json'
-
-if (!fs.existsSync(path)) {
-fs.writeFileSync(path, JSON.stringify({}))
-}
-
-let db = JSON.parse(fs.readFileSync(path))
-let totalUser = Object.keys(db).length
+module.exports = async (sock,jid,config,pushname) => {
 
 let teks = `
 ╔════════════════════╗
-      🤖 ${config.botName}
+   🤖 ${config.botName}
 ╚════════════════════╝
 
-Halo ${pushname || "User"} 👋
+👤 User : ${pushname}
+📌 Prefix : ${config.prefix}
 
-📊 Total Pengguna : ${totalUser}
-👑 Owner : ${config.ownerName}
-
-╔══ MENU UTAMA ══╗
+╔═ MENU UTAMA ═╗
 .menu
 .profile
 .owner
-.top50
-.vip
-.vvip
-╚═══════════════╝
+.listowner
+.listadmin
 
-╔══ TOPUP MENU ══╗
+╔═ TOPUP MENU ═╗
 .topupml
 .topupff
 .topuppubg
@@ -39,40 +23,35 @@ Halo ${pushname || "User"} 👋
 .pulsa
 .data
 .voucher
-╚═══════════════╝
 
-╔══ MARKET MENU ══╗
+╔═ MARKET MENU ═╗
 .jualakun
 .beliakun
 .bt
 .tt
-.stok
-.postakun
-.sold
 .rekber
 .mc
-╚═══════════════╝
+.stok
 
-╔══ GROUP MENU ══╗
-.antilink on
-.antilink off
-.warn
-.kick
-╚═══════════════╝
+╔═ GROUP MENU ═╗
+.breakingnews
+.antilink on/off
+.welcome on/off
+.goodbye on/off
 
-╔══ OWNER MENU ══╗
+╔═ OWNER MENU ═╗
+.addadmin
+.deladmin
+.addowner
+.delowner
+.bc
 .done akun
 .done topup
-.bc
-╚═══════════════╝
 
-Terima kasih memakai
-${config.tvName} 🔥
+╚════════════════════╝
+© ADYVERA TV
 `
 
-await sock.sendMessage(jid,{text:teks})
+await sock.sendMessage(jid,{ text: teks })
 
-} catch(err){
-await sock.sendMessage(jid,{text:"Menu error"})
 }
-                       }
